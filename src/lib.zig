@@ -1,11 +1,11 @@
 const std = @import("std");
 pub const c = @cImport({
     @cInclude("libevdev/libevdev.h");
-    @cInclude("libevdev/libevdev-uinput.h");
 });
 
 const LibEvdev = @This();
 
+/// Libevdev device.
 evdev: *c.struct_libevdev,
 
 /// Initialize a new libevdev device.
@@ -109,7 +109,10 @@ pub fn getFD(self: *LibEvdev) !i32 {
 }
 
 pub const GrabMode = enum(u32) {
+    /// Grab the device if not currently grabbed.
     grab = c.LIBEVDEV_GRAB,
+
+    /// Ungrab the device if currently grabbed.
     ungrab = c.LIBEVDEV_UNGRAB,
 };
 
