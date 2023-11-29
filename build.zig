@@ -4,6 +4,10 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const lib = b.addModule("libevdev", .{
+        .source_file = .{ .path = "src/lib.zig" },
+    });
+
     const exe = b.addExecutable(.{
         .name = "zigLibevdev",
         .root_source_file = .{ .path = "src/main.zig" },
@@ -12,6 +16,7 @@ pub fn build(b: *std.Build) void {
     });
     exe.linkLibC();
     exe.linkSystemLibrary("libevdev");
+    exe.addModule("libevdev", lib);
 
     b.installArtifact(exe);
 

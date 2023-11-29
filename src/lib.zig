@@ -229,6 +229,14 @@ pub const InputEvent = struct {
     code: []const u8,
 };
 
+pub const event_values = struct {
+    pub const key = struct {
+        pub const release = 0;
+        pub const press = 1;
+        pub const hold = 2;
+    };
+};
+
 /// Get the next event from the device.
 ///
 /// This function operates in two different modes:
