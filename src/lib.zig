@@ -1,6 +1,6 @@
 const std = @import("std");
 pub const c = @cImport({
-    @cInclude("libevdev/libevdev.h");
+    @cInclude("libevdev-1.0/libevdev/libevdev.h");
 });
 
 const LibEvdev = @This();
@@ -183,7 +183,7 @@ pub fn get(self: *LibEvdev, comptime option: DeviceInfo) !switch (option) {
     .name,
     .phys,
     .uniq,
-    => [*c]const u8,
+    => []const u8,
     .id_product,
     .id_vendor,
     .id_bustype,
@@ -193,15 +193,59 @@ pub fn get(self: *LibEvdev, comptime option: DeviceInfo) !switch (option) {
     else => void,
 } {
     return switch (option) {
-        .name => c.libevdev_get_name(self.evdev),
-        .phys => c.libevdev_get_phys(self.evdev),
-        .uniq => c.libevdev_get_uniq(self.evdev),
+        .name => std.mem.sliceTo(c.libevdev_get_name(self.evdev), 0),
+        .phys => std.mem.sliceTo(c.libevdev_get_phys(self.evdev), 0),
+        .uniq => std.mem.sliceTo(c.libevdev_get_uniq(self.evdev), 0),
         .id_product => c.libevdev_get_id_product(self.evdev),
         .id_vendor => c.libevdev_get_id_vendor(self.evdev),
         .id_bustype => c.libevdev_get_id_bustype(self.evdev),
         .id_version => c.libevdev_get_id_version(self.evdev),
         .driver_version => c.libevdev_get_driver_version(self.evdev),
         else => error.NotImplemented,
+    };
+}
+
+pub const Property = enum(i32) {
+    max = c.INPUT_PROP_MAX,
+    cnt = c.INPUT_PROP_CNT,
+    direct = c.INPUT_PROP_DIRECT,
+    pointer = c.INPUT_PROP_POINTER,
+    semi_mt = c.INPUT_PROP_SEMI_MT,
+    buttonpad = c.INPUT_PROP_BUTTONPAD,
+    topbuttonpad = c.INPUT_PROP_TOPBUTTONPAD,
+    accelerometer = c.INPUT_PROP_ACCELEROMETER,
+    pointing_stick = c.INPUT_PROP_POINTING_STICK,
+};
+
+pub const EventType = enum(i32) {
+    syn = c.EV_SYN,
+    rel = c.EV_REL,
+    sw = c.EV_SW,
+    ff = c.EV_FF,
+    key = c.EV_KEY,
+    abs = c.EV_ABS,
+    msc = c.EV_MSC,
+    led = c.EV_LED,
+    snd = c.EV_SND,
+    rep = c.EV_REP,
+    pwr = c.EV_PWR,
+    max = c.EV_MAX,
+    cnt = c.EV_CNT,
+    version = c.EV_VERSION,
+    ff_status = c.EV_FF_STATUS,
+};
+
+pub const HasOption = union(enum) {
+    property: Property,
+    event_type: EventType,
+    pending_event,
+};
+
+pub fn has(self: *LibEvdev, comptime option: HasOption) bool {
+    return switch (option) {
+        .property => |p| c.libevdev_has_property(self.evdev, @intFromEnum(p)) != 0,
+        .event_type => |et| c.libevdev_has_event_type(self.evdev, @intFromEnum(et)) != 0,
+        .pending_event => c.libevdev_has_event_pending(self.evdev) != 0,
     };
 }
 
