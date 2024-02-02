@@ -101,6 +101,9 @@ pub fn main() !void {
                     std.debug.print("Exiting\n", .{});
                     return;
                 }
+                if (event.ev.code == libevdev.key.@"1") {
+                    std.debug.print("Wowzers! It werks!\n", .{});
+                }
             }
             if (event.ev.value == libevdev.event_values.key.hold) {
                 std.debug.print("Key Held: {s}\n", .{event.code});
