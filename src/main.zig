@@ -86,7 +86,7 @@ pub fn main() !void {
     try dev.grab(.grab);
     defer dev.grab(.ungrab) catch unreachable;
 
-    const device_name: [*c]const u8 = try dev.get(.name);
+    const device_name: []const u8 = try dev.get(.name);
     std.debug.print("device name: {s}\n", .{
         device_name,
     });
