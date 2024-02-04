@@ -2,7 +2,7 @@ const std = @import("std");
 const libevdev = @import("libevdev");
 
 pub fn listInputs(writer: anytype) !void {
-    var input_dir = try std.fs.openDirAbsolute("/dev/input/by-path", .{ .iterate = true });
+    var input_dir = try std.fs.openDirAbsolute("/dev/input/by-id", .{ .iterate = true });
     defer input_dir.close();
 
     var iter = input_dir.iterate();
@@ -37,7 +37,7 @@ pub fn main() !void {
         if (std.mem.startsWith(u8, input_buffer.items, "quit")) return;
 
         if (std.mem.startsWith(u8, input_buffer.items, "done")) {
-            const path = try std.fmt.allocPrint(allocator, "/dev/input/by-path/{s}", .{name});
+            const path = try std.fmt.allocPrint(allocator, "/dev/input/by-id/{s}", .{name});
             defer allocator.free(path);
 
             std.fs.accessAbsolute(path, .{}) catch |err| switch (err) {
@@ -69,7 +69,7 @@ pub fn main() !void {
 
     std.debug.print("Selected: {s}\n", .{name});
 
-    const path = try std.fmt.allocPrint(allocator, "/dev/input/by-path/{s}", .{name});
+    const path = try std.fmt.allocPrint(allocator, "/dev/input/by-id/{s}", .{name});
     defer allocator.free(path);
 
     // In zig, .read_only by default
@@ -94,22 +94,22 @@ pub fn main() !void {
     var event: libevdev.InputEvent = undefined;
     while (true) {
         const result_code = dev.nextEvent(.normal, &event) catch continue;
-        if (result_code == .success and std.mem.eql(u8, event.type, "EV_KEY")) {
-            if (event.ev.value == libevdev.event_values.key.press) {
-                std.debug.print("Key Pressed: {s}\n", .{event.code});
-                if (event.ev.code == libevdev.c.KEY_ESC) {
+        if (result_code == .success and event.type == libevdev.EventType.key) {
+            if (event.value == libevdev.event_values.key.press) {
+                std.debug.print("Key Pressed: {s}\n", .{event.string(.code)});
+                if (event.code == libevdev.key.ESC) {
                     std.debug.print("Exiting\n", .{});
                     return;
                 }
-                if (event.ev.code == libevdev.key.@"1") {
+                if (event.code == libevdev.key.@"1") {
                     std.debug.print("Wowzers! It werks!\n", .{});
                 }
             }
-            if (event.ev.value == libevdev.event_values.key.hold) {
-                std.debug.print("Key Held: {s}\n", .{event.code});
+            if (event.value == libevdev.event_values.key.hold) {
+                std.debug.print("Key Held: {s}\n", .{event.string(.code)});
             }
-            if (event.ev.value == libevdev.event_values.key.release) {
-                std.debug.print("Key Released: {s}\n", .{event.code});
+            if (event.value == libevdev.event_values.key.release) {
+                std.debug.print("Key Released: {s}\n", .{event.string(.code)});
             }
         }
     }

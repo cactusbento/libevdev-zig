@@ -1,7 +1,5 @@
 const std = @import("std");
-pub const c = @cImport({
-    @cInclude("libevdev-1.0/libevdev/libevdev.h");
-});
+const c = @import("translate-c/libevdev-uinput.zig");
 
 const LibEvdev = @This();
 
@@ -269,8 +267,16 @@ pub const ReadStatus = enum {
 pub const InputEvent = struct {
     ev: c.struct_input_event,
 
-    type: []const u8,
-    code: []const u8,
+    type: EventType,
+    code: u32,
+    value: i32,
+
+    pub fn string(self: *InputEvent, field: enum { type, code }) []const u8 {
+        return switch (field) {
+            .type => std.mem.sliceTo(c.libevdev_event_type_get_name(self.ev.type), 0),
+            .code => std.mem.sliceTo(c.libevdev_event_code_get_name(self.ev.type, self.code), 0),
+        };
+    }
 };
 
 pub const event_values = struct {
@@ -321,8 +327,9 @@ pub fn nextEvent(self: *LibEvdev, flag: ReadFlags, ev: *InputEvent) !ReadStatus 
     const result = c.libevdev_next_event(self.evdev, @intFromEnum(flag), &ev.*.ev);
     if (result < 0) return error.FailedToGetNextEvent;
 
-    ev.type = std.mem.sliceTo(c.libevdev_event_type_get_name(ev.ev.type), 0);
-    ev.code = std.mem.sliceTo(c.libevdev_event_code_get_name(ev.ev.type, ev.ev.code), 0);
+    ev.type = @enumFromInt(ev.ev.type);
+    ev.value = ev.ev.value;
+    ev.code = ev.ev.code;
 
     return switch (result) {
         c.LIBEVDEV_READ_STATUS_SYNC => .sync,
@@ -330,6 +337,61 @@ pub fn nextEvent(self: *LibEvdev, flag: ReadFlags, ev: *InputEvent) !ReadStatus 
         else => unreachable,
     };
 }
+
+// =============================================================
+//                       UINPUT
+// =============================================================
+
+pub const UInput = struct {
+    uifd: ?std.fs.File,
+    uidev: *c.struct_libevdev_uinput,
+
+    pub fn init(dev: *c.struct_libevdev, uinput_fd: ?std.fs.File) !UInput {
+        const fd = if (uinput_fd) |uf| uf.handle else c.LIBEVDEV_UINPUT_OPEN_MANAGED;
+
+        var ret: UInput = .{
+            .uifd = uinput_fd,
+            .uidev = undefined,
+        };
+
+        const result = c.libevdev_uinput_create_from_device(dev, fd, &ret.uidev);
+        if (result != 0) return error.FailedToInitUinput;
+
+        return ret;
+    }
+
+    pub fn deinit(self: *UInput) void {
+        defer if (self.uifd) |uf| uf.close();
+        defer c.libevdev_uinput_destroy(self.uidev);
+    }
+
+    pub const UInputInfo = enum {
+        fd,
+        syspath,
+        devnode,
+    };
+
+    pub fn get(self: *UInput, comptime info: UInputInfo) switch (info) {
+        .fd => i32,
+        .devnode, .syspath => []const u8,
+    } {
+        return switch (info) {
+            .fd => c.libevdev_uinput_get_fd(self.uidev),
+            .devnode => std.mem.sliceTo(c.libevdev_uinput_get_devnode(self.uidev), 0),
+            .syspath => std.mem.sliceTo(c.libevdev_uinput_get_syspath(self.uidev), 0),
+        };
+    }
+
+    pub fn writeEvent(self: *UInput, event: InputEvent) !void {
+        const result = c.libevdev_uinput_write_event(
+            self.uidevm,
+            @intFromEnum(event.type),
+            event.code,
+            event.value,
+        );
+        if (result != 0) return error.FailedToWriteEvent;
+    }
+};
 
 pub const key = struct {
     pub const RESERVED = @as(c_int, 0);
