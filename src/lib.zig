@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("translate-c/libevdev-uinput.zig");
+pub const c = @import("translate-c/libevdev-uinput.zig");
 
 const LibEvdev = @This();
 
@@ -215,7 +215,7 @@ pub const Property = enum(i32) {
     pointing_stick = c.INPUT_PROP_POINTING_STICK,
 };
 
-pub const EventType = enum(i32) {
+pub const EventType = enum(u32) {
     syn = c.EV_SYN,
     rel = c.EV_REL,
     sw = c.EV_SW,
@@ -383,13 +383,21 @@ pub const UInput = struct {
     }
 
     pub fn writeEvent(self: *UInput, event: InputEvent) !void {
-        const result = c.libevdev_uinput_write_event(
-            self.uidevm,
+        const write_result = c.libevdev_uinput_write_event(
+            self.uidev,
             @intFromEnum(event.type),
             event.code,
             event.value,
         );
-        if (result != 0) return error.FailedToWriteEvent;
+        if (write_result != 0) return error.FailedToWriteEvent;
+
+        const sync_result = c.libevdev_uinput_write_event(
+            self.uidev,
+            @intFromEnum(EventType.syn),
+            c.SYN_REPORT,
+            0,
+        );
+        if (sync_result != 0) return error.FailedToSyncEvent;
     }
 };
 

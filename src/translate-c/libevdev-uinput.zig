@@ -603,7 +603,7 @@ pub extern fn libevdev_get_repeat(dev: ?*const struct_libevdev, delay: [*c]c_int
 pub const struct_libevdev_uinput = opaque {};
 pub const LIBEVDEV_UINPUT_OPEN_MANAGED: c_int = -2;
 pub const enum_libevdev_uinput_open_mode = c_int;
-pub extern fn libevdev_uinput_create_from_device(dev: ?*const struct_libevdev, uinput_fd: c_int, uinput_dev: [*c]?*struct_libevdev_uinput) c_int;
+pub extern fn libevdev_uinput_create_from_device(dev: ?*const struct_libevdev, uinput_fd: c_int, uinput_dev: [*c]*struct_libevdev_uinput) c_int;
 pub extern fn libevdev_uinput_destroy(uinput_dev: ?*struct_libevdev_uinput) void;
 pub extern fn libevdev_uinput_get_fd(uinput_dev: ?*const struct_libevdev_uinput) c_int;
 pub extern fn libevdev_uinput_get_syspath(uinput_dev: ?*struct_libevdev_uinput) [*c]const u8;
