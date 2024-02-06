@@ -7,7 +7,6 @@ pub fn listInputs(writer: anytype) !void {
 
     var iter = input_dir.iterate();
     while (try iter.next()) |entry| {
-        if (!std.mem.endsWith(u8, entry.name, "kbd")) continue;
         try writer.print("{s}\n", .{entry.name});
     }
 }
@@ -94,6 +93,7 @@ pub fn main() !void {
     var event: libevdev.InputEvent = undefined;
     while (true) {
         const result_code = dev.nextEvent(.normal, &event) catch continue;
+        std.debug.print("Event: {any}\n", .{event});
         if (result_code == .success and event.type == libevdev.EventType.key) {
             if (event.value == libevdev.event_values.key.press) {
                 std.debug.print("Key Pressed: {s}\n", .{event.string(.code)});
