@@ -93,15 +93,15 @@ pub fn main() !void {
     var event: libevdev.InputEvent = undefined;
     while (true) {
         const result_code = dev.nextEvent(.normal, &event) catch continue;
-        std.debug.print("Event: {any}\n", .{event});
+        // std.debug.print("Event: {s} {s}\n", .{event.string(.type), event.string(.code)});
         if (result_code == .success and event.type == libevdev.EventType.key) {
             if (event.value == libevdev.event_values.key.press) {
                 std.debug.print("Key Pressed: {s}\n", .{event.string(.code)});
-                if (event.code == libevdev.key.ESC) {
+                if (event.code.key == .KEY_ESC) {
                     std.debug.print("Exiting\n", .{});
                     return;
                 }
-                if (event.code == libevdev.key.@"1") {
+                if (event.code.key == .KEY_0) {
                     std.debug.print("Wowzers! It werks!\n", .{});
                 }
             }
