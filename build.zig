@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) void {
     });
     lib.linkSystemLibrary("libevdev", .{
         .needed = true,
-        .preferred_link_mode = .Dynamic,
+        .preferred_link_mode = .dynamic,
     });
 
     const exe = b.addExecutable(.{
