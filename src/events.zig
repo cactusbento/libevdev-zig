@@ -1,4 +1,5 @@
 const c = @import("translate-c/libevdev-uinput.zig");
+
 pub const EventType = enum(u32) {
     syn = c.EV_SYN,
     rel = c.EV_REL,
@@ -15,6 +16,28 @@ pub const EventType = enum(u32) {
     cnt = c.EV_CNT,
     version = c.EV_VERSION,
     ff_status = c.EV_FF_STATUS,
+};
+
+pub const EventValue = union(EventType) {
+    syn,
+    rel,
+    sw,
+    ff,
+    key: enum(i32) {
+        release = 0,
+        press = 1,
+        hold = 2,
+    },
+    abs,
+    msc,
+    led,
+    snd,
+    rep,
+    pwr,
+    max,
+    cnt,
+    version,
+    ff_status,
 };
 
 pub const EventCode = union(EventType) {

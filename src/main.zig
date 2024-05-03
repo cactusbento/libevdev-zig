@@ -94,8 +94,8 @@ pub fn main() !void {
     while (true) {
         const result_code = dev.nextEvent(.normal, &event) catch continue;
         // std.debug.print("Event: {s} {s}\n", .{event.string(.type), event.string(.code)});
-        if (result_code == .success and event.type == libevdev.EventType.key) {
-            if (event.value == libevdev.event_values.key.press) {
+        if (result_code == .success and event.type == .key) {
+            if (event.value.key == .press) {
                 std.debug.print("Key Pressed: {s}\n", .{event.string(.code)});
                 if (event.code.key == .KEY_ESC) {
                     std.debug.print("Exiting\n", .{});
@@ -105,10 +105,10 @@ pub fn main() !void {
                     std.debug.print("Wowzers! It werks!\n", .{});
                 }
             }
-            if (event.value == libevdev.event_values.key.hold) {
+            if (event.value.key == .hold) {
                 std.debug.print("Key Held: {s}\n", .{event.string(.code)});
             }
-            if (event.value == libevdev.event_values.key.release) {
+            if (event.value.key == .release) {
                 std.debug.print("Key Released: {s}\n", .{event.string(.code)});
             }
         }

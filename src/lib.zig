@@ -1,9 +1,12 @@
 const std = @import("std");
+const log = std.log.scoped(.@"evdev.zig");
+
 pub const c = @import("translate-c/libevdev-uinput.zig");
 
 pub const events = @import("events.zig");
-pub const EventType = events.EventType;
-pub const EventCode = events.EventCode;
+const EventType = events.EventType;
+const EventCode = events.EventCode;
+const EventValue = events.EventValue;
 
 const LibEvdev = @This();
 
@@ -255,7 +258,7 @@ pub const InputEvent = struct {
 
     type: EventType,
     code: EventCode,
-    value: i32,
+    value: EventValue,
 
     pub fn string(self: *InputEvent, field: enum { type, code }) []const u8 {
         return switch (field) {
@@ -263,14 +266,6 @@ pub const InputEvent = struct {
             .code => std.mem.sliceTo(c.libevdev_event_code_get_name(self.ev.type, self.ev.code), 0),
         };
     }
-};
-
-pub const event_values = struct {
-    pub const key = struct {
-        pub const release = 0;
-        pub const press = 1;
-        pub const hold = 2;
-    };
 };
 
 /// Get the next event from the device.
@@ -336,7 +331,10 @@ pub fn nextEvent(self: *LibEvdev, flag: ReadFlags, ev: *InputEvent) !ReadStatus 
 
     ev.type = et;
     ev.code = ec;
-    ev.value = ev.ev.value;
+    ev.value = switch (et) {
+        inline .key => |tag| @unionInit(EventValue, @tagName(tag), @enumFromInt(ev.ev.value)),
+        inline else => |tag| @unionInit(EventValue, @tagName(tag), {}),
+    };
 
     return switch (result) {
         c.LIBEVDEV_READ_STATUS_SYNC => .sync,
@@ -394,14 +392,22 @@ pub const UInput = struct {
             .pwr, .max, .cnt, .version, .ff_status => |i| i,
             inline else => |e| @intFromEnum(e),
         };
+
+        // Handles unsupported events as 0.
+        const input_value: i32 = switch (event.value) {
+            .key => |val| @intFromEnum(val),
+            else => 0,
+        };
+
         const write_result = c.libevdev_uinput_write_event(
             self.uidev,
             @intFromEnum(event.type),
             @intCast(code_num),
-            event.value,
+            input_value,
         );
         if (write_result != 0) return error.FailedToWriteEvent;
 
+        // This is to allow for real-time input passing to the OS.
         const sync_result = c.libevdev_uinput_write_event(
             self.uidev,
             @intFromEnum(EventType.syn),
