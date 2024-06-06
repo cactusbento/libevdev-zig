@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .link_libc = true,
     });
-    lib.linkSystemLibrary("libevdev", .{
+    lib.linkSystemLibrary("evdev", .{
         .needed = true,
         .preferred_link_mode = .dynamic,
     });
