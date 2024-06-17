@@ -1,6 +1,6 @@
 # libevdev-zig
 
-Zig version: `0.12.0-dev.2587+a1b607acb`
+Zig version: `0.14.0-dev.41+8f27a4370`
 
 A Zig wrapper for `libevdev/libvbevdev.h` that covers the most useful functionalities of the library.
 
@@ -10,11 +10,11 @@ See `src/main.zig` for an example of the library in use.
 
 ## Modules
 
-* `"libevdev"` - The wrapper itself. Covers mostly keyboards, may cover mouse.
+* `"libevdev"` - The wrapper itself. Covers mostly keyboards, may cover mice.
   - Links `libc`
   - Links `libevdev`
-    - Preferred link mode is `.Dynamic`
+    - Preferred link mode is `.dynamic`
 
 ## Todo
 
-* Cover API for the rest of the devices.
+* Cover API for the rest of the devices. (PRs welcome)
