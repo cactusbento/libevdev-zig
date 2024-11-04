@@ -312,7 +312,7 @@ pub fn nextEvent(self: *LibEvdev, flag: ReadFlags, ev: *InputEvent) !ReadStatus 
     const ec: EventCode = switch (et) {
         inline .pwr, .max, .cnt, .version, .ff_status => |tag| @unionInit(EventCode, @tagName(tag), ev.ev.value),
         inline else => |tag| fuk: {
-            const ti: std.builtin.Type.Union = @typeInfo(EventCode).Union;
+            const ti: std.builtin.Type.Union = @typeInfo(EventCode).@"union";
             comptime var tag_type: type = undefined;
             inline for (ti.fields) |uf| {
                 if (comptime std.mem.eql(u8, uf.name, @tagName(tag))) {
