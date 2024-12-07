@@ -3,6 +3,56 @@ const log = std.log.scoped(.@"evdev.zig");
 
 pub const c = @import("translate-c/libevdev-uinput.zig");
 
+pub const ioctl = struct {
+    const DeviceList = std.ArrayList(DeviceFile);
+
+    pub const DeviceFile = struct {
+        file_name: [256]u8,
+        real_name: [256]u8,
+    };
+
+    /// Returns an ArrayList of each device.
+    pub fn listInputEvents(alloc: std.mem.Allocator) !DeviceList {
+        var input_dir = try std.fs.openDirAbsolute("/dev/input", .{ .iterate = true });
+        defer input_dir.close();
+
+        var new_list = try DeviceList.initCapacity(alloc, 4);
+
+        var iter = input_dir.iterate();
+        while (try iter.next()) |entry| {
+            if (entry.kind == .character_device and
+                std.mem.startsWith(u8, entry.name, "event"))
+            {
+                var new_file_name: [256]u8 = undefined;
+                @memset(&new_file_name, 0);
+
+                std.mem.copyForwards(u8, &new_file_name, entry.name);
+
+                const slice = std.mem.sliceTo(entry.name, 0);
+                var evFile = try input_dir.openFile(slice, .{});
+                defer evFile.close();
+
+                const ev_name = getName(evFile);
+
+                try new_list.append(.{
+                    .file_name = new_file_name,
+                    .real_name = ev_name,
+                });
+            }
+        }
+
+        return new_list;
+    }
+
+    /// get name of a given input
+    pub fn getName(file: std.fs.File) [256]u8 {
+        var ret: [256]u8 = std.mem.zeroes([256]u8);
+        std.mem.copyForwards(u8, &ret, "???");
+        _ = c.ioctl(file.handle, c.EVIOCGNAME(ret.len), &ret);
+        return ret;
+    }
+};
+
 pub const events = @import("events.zig");
 const EventType = events.EventType;
 const EventCode = events.EventCode;

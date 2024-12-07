@@ -1,16 +1,6 @@
 const std = @import("std");
 const libevdev = @import("libevdev");
 
-pub fn listInputs(writer: anytype) !void {
-    var input_dir = try std.fs.openDirAbsolute("/dev/input/by-id", .{ .iterate = true });
-    defer input_dir.close();
-
-    var iter = input_dir.iterate();
-    while (try iter.next()) |entry| {
-        try writer.print("{s}\n", .{entry.name});
-    }
-}
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -24,6 +14,9 @@ pub fn main() !void {
     const stdout_writer = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_writer);
     const stdout = bw.writer();
+
+    var inputs = try libevdev.ioctl.listInputEvents(allocator);
+    defer inputs.deinit();
 
     var name: []const u8 = "";
     defer allocator.free(name);
@@ -49,7 +42,12 @@ pub fn main() !void {
 
             break :sl;
         }
-        if (std.mem.startsWith(u8, input_buffer.items, "list")) try listInputs(stdout);
+        if (std.mem.startsWith(u8, input_buffer.items, "list")) {
+            for (inputs.items) |evFile| {
+                const slice = std.mem.sliceTo(&evFile.file_name, 0);
+                try stdout.print("/dev/input/{s: <8} -> {s}\n", .{ slice, evFile.real_name });
+            }
+        }
         if (std.mem.startsWith(u8, input_buffer.items, "status")) {
             try stdout.print("Selected: {s}\n", .{name});
         }
