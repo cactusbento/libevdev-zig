@@ -21,52 +21,43 @@ pub fn main() !void {
     var name: []const u8 = "";
     defer allocator.free(name);
 
+    for (inputs.items) |evFile| {
+        const slice = std.mem.sliceTo(&evFile.file_name, 0);
+        try stdout.print("/dev/input/{s: <8} -> {s}\n", .{ slice, evFile.real_name });
+    }
+    try stdout.print("'> ?' prints this list.\n", .{});
+    try stdout.print("'> q' quit\n", .{});
     sl: while (true) {
         try stdout.writeAll("> ");
         try bw.flush();
         try stdin.streamUntilDelimiter(input_buffer.writer(), '\n', null);
         defer input_buffer.clearAndFree();
-        if (std.mem.startsWith(u8, input_buffer.items, "quit")) return;
-
-        if (std.mem.startsWith(u8, input_buffer.items, "done")) {
-            const path = try std.fmt.allocPrint(allocator, "/dev/input/by-id/{s}", .{name});
-            defer allocator.free(path);
-
-            std.fs.accessAbsolute(path, .{}) catch |err| switch (err) {
-                error.FileNotFound => {
-                    try stdout.print("Invalid Device Path: \n    {s}\n", .{path});
-                    continue :sl;
-                },
-                else => |e| return e,
-            };
-
-            break :sl;
-        }
-        if (std.mem.startsWith(u8, input_buffer.items, "list")) {
+        const stripped = std.mem.trim(u8, input_buffer.items, &std.ascii.whitespace);
+        if (std.mem.startsWith(u8, input_buffer.items, "q")) return;
+        if (std.mem.startsWith(u8, input_buffer.items, "?")) {
             for (inputs.items) |evFile| {
                 const slice = std.mem.sliceTo(&evFile.file_name, 0);
                 try stdout.print("/dev/input/{s: <8} -> {s}\n", .{ slice, evFile.real_name });
             }
-        }
-        if (std.mem.startsWith(u8, input_buffer.items, "status")) {
-            try stdout.print("Selected: {s}\n", .{name});
-        }
-        if (std.mem.startsWith(u8, input_buffer.items, "select")) {
-            var iter = std.mem.tokenizeAny(u8, input_buffer.items, " \n\t\r");
-
-            // Skip over "select" command
-            _ = iter.next().?;
-
-            // Copy input name to name.
-            allocator.free(name);
-            name = try allocator.dupe(u8, iter.next().?);
+            try stdout.print("'> ?' prints this list.\n", .{});
+            try stdout.print("'> q' quit\n", .{});
         }
         try bw.flush();
+
+        _ = std.fmt.parseInt(u32, stripped, 10) catch continue :sl;
+        for (inputs.items) |input_event| {
+            const found = std.mem.indexOf(u8, &input_event.file_name, stripped) != null;
+            if (found) {
+                const slice = std.mem.sliceTo(&input_event.file_name, 0);
+                name = try allocator.dupe(u8, slice);
+                break :sl;
+            }
+        }
     }
 
     std.debug.print("Selected: {s}\n", .{name});
 
-    const path = try std.fmt.allocPrint(allocator, "/dev/input/by-id/{s}", .{name});
+    const path = try std.fmt.allocPrint(allocator, "/dev/input/{s}", .{name});
     defer allocator.free(path);
 
     // In zig, .read_only by default
